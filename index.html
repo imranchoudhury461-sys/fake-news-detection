@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>FactCheck - AI Fake News Detector</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #0a0a0f;
+      color: #e8e6e0;
+      font-family: Georgia, serif;
+      min-height: 100vh;
+    }
+
+    .header {
+      padding: 20px 32px;
+      border-bottom: 1px solid #1e1e2e;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #0a0a0f;
+    }
+
+    .logo { display: flex; align-items: center; gap: 14px; }
+
+    .logo-icon {
+      width: 42px; height: 42px; border-radius: 50%;
+      background: linear-gradient(135deg, #ff0040, #ff4d6d);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: bold; color: #fff;
+      box-shadow: 0 0 20px rgba(255,0,64,0.4);
+    }
+
+    .logo-title { font-size: 22px; font-weight: bold; letter-spacing: 0.06em; color: #fff; }
+    .logo-title span { color: #ff0040; }
+    .logo-sub { font-size: 11px; color: #6b6b80; letter-spacing: 0.12em; text-transform: uppercase; margin-top: 2px; }
+
+    .badges { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+    .badge { padding: 3px 10px; border-radius: 4px; border: 1px solid #2a2a3e; font-size: 11px; color: #6b6b80; }
+
+    .container { max-width: 820px; margin: 0 auto; padding: 32px 24px; }
+
+    .input-card {
+      background: #0f0f1a; border: 1px solid #1e1e2e;
+      border-radius: 12px; padding: 24px; margin-bottom: 24px;
+    }
+
+    .toggle-row { display: flex; gap: 10px; margin-bottom: 16px; }
+
+    .toggle-btn {
+      padding: 8px 18px; border-radius: 8px; border: 1px solid #2a2a3e;
+      background: transparent; color: #6b6b80; font-size: 13px;
+      cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .toggle-btn.active { background: #ff004015; border-color: #ff004060; color: #ff4d6d; }
+
+    textarea {
+      width: 100%; min-height: 120px; background: #070710;
+      border: 1px solid #2a2a3e; border-radius: 8px; color: #e8e6e0;
+      font-size: 15px; font-family: inherit; padding: 14px 16px;
+      resize: vertical; outline: none; line-height: 1.6;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: #ff0040; }
+
+    .analyze-btn {
+      margin-top: 16px; width: 100%; padding: 14px;
+      border-radius: 8px; border: none;
+      background: linear-gradient(135deg, #ff0040, #c8003a);
+      color: #fff; font-size: 15px; font-weight: bold;
+      cursor: pointer; letter-spacing: 0.06em;
+      text-transform: uppercase; transition: all 0.2s;
+      box-shadow: 0 0 24px rgba(255,0,64,0.3);
+      font-family: inherit;
+    }
+    .analyze-btn:disabled { background: #1e1e2e; color: #4a4a5e; box-shadow: none; cursor: not-allowed; }
+
+    .loading-card {
+      background: #0f0f1a; border: 1px solid #1e1e2e;
+      border-radius: 12px; padding: 40px; text-align: center;
+      display: none;
+    }
+
+    .dots { display: flex; justify-content: center; gap: 8px; margin-bottom: 20px; }
+    .dots span {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: #ff0040; animation: pulse 1.2s ease-in-out infinite;
+      display: inline-block;
+    }
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse { 0%,100%{opacity:.2;transform:scale(1)} 50%{opacity:1;transform:scale(1.4)} }
+
+    .loading-text { color: #a0a0b8; font-size: 15px; }
+
+    .error-card {
+      background: rgba(255,0,64,0.06); border: 1px solid rgba(255,0,64,0.3);
+      border-radius: 12px; padding: 20px; color: #ff4d6d;
+      display: none; margin-bottom: 16px;
+    }
+
+    .results { display: none; flex-direction: column; gap: 16px; }
+
+    .verdict-card {
+      border: 1px solid; border-left: 4px solid; border-radius: 12px; padding: 28px;
+      display: flex; gap: 20px; align-items: flex-start;
+    }
+
+    .verdict-icon {
+      width: 56px; height: 56px; border-radius: 50%; border: 2px solid;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px; font-weight: bold; flex-shrink: 0;
+    }
+
+    .verdict-label { font-size: 22px; font-weight: bold; letter-spacing: 0.04em; text-transform: uppercase; }
+    .verdict-score-text { font-size: 13px; color: #a0a0b8; margin-top: 6px; }
+    .verdict-summary { font-size: 15px; color: #c8c8d8; margin-top: 10px; line-height: 1.7; }
+
+    .score-card { background: #0f0f1a; border: 1px solid #1e1e2e; border-radius: 12px; padding: 20px 24px; }
+    .score-label { display: flex; justify-content: space-between; font-size: 13px; color: #a0a0b8; margin-bottom: 10px; }
+    .score-bar { height: 8px; background: #1e1e2e; border-radius: 4px; overflow: hidden; }
+    .score-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+
+    .ml-badge {
+      display: inline-block; padding: 4px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: bold; margin-top: 8px;
+      background: #1e1e2e; color: #a0a0b8;
+    }
+
+    .card { background: #0f0f1a; border: 1px solid #1e1e2e; border-radius: 12px; padding: 20px 24px; }
+    .card-title { font-size: 11px; color: #6b6b80; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 14px; }
+    .reason-item { font-size: 14px; color: #c8c8d8; margin-bottom: 8px; line-height: 1.6; }
+
+    .claim-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 10px 14px; border-radius: 8px; border-left: 3px solid;
+      margin-bottom: 8px; font-size: 14px; color: #c8c8d8;
+    }
+
+    .redflag-item { font-size: 13px; color: #ff8c42; margin-bottom: 8px; padding-left: 12px; border-left: 2px solid #ff4d6d40; }
+
+    .recommend-card { display: flex; gap: 16px; align-items: flex-start; }
+    .recommend-icon { font-size: 20px; flex-shrink: 0; }
+    .recommend-text { font-size: 14px; color: #c8c8d8; line-height: 1.7; margin-top: 4px; }
+
+    .reset-btn {
+      background: transparent; border: 1px solid #2a2a3e; border-radius: 8px;
+      color: #6b6b80; padding: 12px; font-size: 13px; cursor: pointer;
+      letter-spacing: 0.06em; text-transform: uppercase; font-family: inherit;
+      width: 100%; transition: all 0.2s;
+    }
+    .reset-btn:hover { border-color: #ff004060; color: #ff4d6d; }
+
+    .empty-state { text-align: center; padding: 48px 0; }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-title { font-size: 16px; color: #6b6b80; margin-bottom: 8px; }
+    .empty-desc { font-size: 13px; color: #4a4a5e; line-height: 1.8; max-width: 480px; margin: 0 auto; }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">✗</div>
+    <div>
+      <div class="logo-title">FACT<span>CHECK</span></div>
+      <div class="logo-sub">AI-Powered News Verification</div>
+    </div>
+  </div>
+  <div class="badges">
+    <span class="badge">Reuters</span>
+    <span class="badge">AP</span>
+    <span class="badge">BBC</span>
+    <span class="badge">Snopes</span>
+    <span class="badge">ML Model</span>
+    <span class="badge">Groq AI</span>
+  </div>
+</div>
+
+<div class="container">
+  <div class="input-card">
+    <div class="toggle-row">
+      <button class="toggle-btn active" id="textBtn" onclick="setMode('text')">📝 Paste Text</button>
+      <button class="toggle-btn" id="urlBtn" onclick="setMode('url')">🌐 Paste URL</button>
+    </div>
+    <textarea id="inputBox" placeholder="Paste a news headline or article text..."></textarea>
+    <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">⚡ Verify Now</button>
+  </div>
+
+  <div class="loading-card" id="loadingCard">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <div class="loading-text" id="loadingText">Cross-referencing trusted sources...</div>
+  </div>
+
+  <div class="error-card" id="errorCard"></div>
+
+  <div class="results" id="results"></div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">🔍</div>
+    <div class="empty-title">How it works</div>
+    <div class="empty-desc">
+      Paste any news article, URL, or headline. Our ML model + Groq AI will analyze it and give you a detailed credibility verdict.
+    </div>
+  </div>
+</div>
+
+<script>
+  const VERDICT_COLORS = {
+    VERIFIED: "#00e5a0",
+    LIKELY_TRUE: "#7ee8a2",
+    UNVERIFIED: "#f5c542",
+    MISLEADING: "#ff8c42",
+    FAKE: "#ff0040",
+  };
+
+  const VERDICT_ICONS = {
+    VERIFIED: "✓",
+    LIKELY_TRUE: "↑",
+    UNVERIFIED: "?",
+    MISLEADING: "!",
+    FAKE: "✗",
+  };
+
+  let isUrl = false;
+  const loadingMessages = [
+    "Scanning the article...",
+    "Running ML model...",
+    "Consulting Groq AI...",
+    "Cross-referencing sources...",
+    "Compiling verdict...",
+  ];
+  let loadingInterval;
+
+  function setMode(mode) {
+    isUrl = mode === "url";
+    document.getElementById("textBtn").className = "toggle-btn" + (!isUrl ? " active" : "");
+    document.getElementById("urlBtn").className = "toggle-btn" + (isUrl ? " active" : "");
+    document.getElementById("inputBox").placeholder = isUrl
+      ? "Paste a news article URL... e.g. https://bbc.com/news/..."
+      : "Paste a news headline or article text...";
+  }
+
+  async function analyze() {
+    const input = document.getElementById("inputBox").value.trim();
+    if (!input) return;
+
+    // Show loading
+    document.getElementById("loadingCard").style.display = "block";
+    document.getElementById("results").style.display = "none";
+    document.getElementById("errorCard").style.display = "none";
+    document.getElementById("emptyState").style.display = "none";
+    document.getElementById("analyzeBtn").disabled = true;
+
+    let msgIndex = 0;
+    loadingInterval = setInterval(() => {
+      msgIndex = (msgIndex + 1) % loadingMessages.length;
+      document.getElementById("loadingText").textContent = loadingMessages[msgIndex];
+    }, 2000);
+
+    try {
+      const payload = isUrl ? { url: input } : { text: input };
+      const res = await fetch("/api/check", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (!data.success) throw new Error(data.error);
+      showResult(data.result);
+
+    } catch (e) {
+      document.getElementById("errorCard").textContent = "⚠ " + (e.message || "Something went wrong!");
+      document.getElementById("errorCard").style.display = "block";
+      document.getElementById("emptyState").style.display = "block";
+    } finally {
+      clearInterval(loadingInterval);
+      document.getElementById("loadingCard").style.display = "none";
+      document.getElementById("analyzeBtn").disabled = false;
+    }
+  }
+
+  function showResult(result) {
+    const verdict = result.verdict || "UNVERIFIED";
+    const color = VERDICT_COLORS[verdict] || "#f5c542";
+    const icon = VERDICT_ICONS[verdict] || "?";
+
+    let html = `
+      <div class="verdict-card" style="border-color:${color}60;background:${color}08;border-left-color:${color}">
+        <div class="verdict-icon" style="color:${color};border-color:${color};background:${color}20">${icon}</div>
+        <div class="verdict-info">
+          <div class="verdict-label" style="color:${color}">${verdict}</div>
+          <div class="verdict-score-text">Credibility: ${result.credibility_score}/100 · Confidence: ${result.confidence}%</div>
+          ${result.ml_verdict ? `<div class="ml-badge">🤖 ML Model: ${result.ml_verdict} (${result.ml_confidence}%)</div>` : ""}
+          <div class="verdict-summary">${result.summary}</div>
+        </div>
+      </div>
+
+      <div class="score-card">
+        <div class="score-label">
+          <span>Credibility Score</span>
+          <span style="color:${color}">${result.credibility_score}/100</span>
+        </div>
+        <div class="score-bar">
+          <div class="score-fill" style="width:${result.credibility_score}%;background:linear-gradient(90deg,#ff0040,${color})"></div>
+        </div>
+      </div>
+    `;
+
+    if (result.reasons?.length > 0) {
+      html += `<div class="card"><div class="card-title">📋 Analysis</div>`;
+      result.reasons.forEach(r => { html += `<div class="reason-item">• ${r}</div>`; });
+      html += `</div>`;
+    }
+
+    if (result.claims?.length > 0) {
+      html += `<div class="card"><div class="card-title">🔍 Key Claims</div>`;
+      result.claims.forEach(c => {
+        const claimColor = c.status === "true" ? "#00e5a0" : c.status === "false" ? "#ff4d6d" : c.status === "misleading" ? "#ff8c42" : "#f5c542";
+        const claimIcon = c.status === "true" ? "✓" : c.status === "false" ? "✗" : "?";
+        html += `<div class="claim-item" style="border-left-color:${claimColor};background:${claimColor}08">
+          <span style="color:${claimColor};font-weight:bold">${claimIcon}</span>
+          <span>${c.claim}</span>
+        </div>`;
+      });
+      html += `</div>`;
+    }
+
+    if (result.red_flags?.length > 0) {
+      html += `<div class="card"><div class="card-title">⚑ Red Flags</div>`;
+      result.red_flags.forEach(f => { html += `<div class="redflag-item">${f}</div>`; });
+      html += `</div>`;
+    }
+
+    if (result.what_to_do) {
+      html += `<div class="card recommend-card">
+        <div class="recommend-icon">💡</div>
+        <div>
+          <div class="card-title">Recommendation</div>
+          <div class="recommend-text">${result.what_to_do}</div>
+        </div>
+      </div>`;
+    }
+
+    html += `<button class="reset-btn" onclick="reset()">Check Another Article →</button>`;
+
+    const resultsDiv = document.getElementById("results");
+    resultsDiv.innerHTML = html;
+    resultsDiv.style.display = "flex";
+  }
+
+  function reset() {
+    document.getElementById("results").style.display = "none";
+    document.getElementById("inputBox").value = "";
+    document.getElementById("emptyState").style.display = "block";
+  }
+</script>
+</body>
+</html>

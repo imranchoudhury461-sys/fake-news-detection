@@ -12,8 +12,8 @@ app = Flask(__name__)
 # Load ML model
 print("Loading ML model...")
 try:
-    model = joblib.load("model/model.pkl")
-    vectorizer = joblib.load("model/vectorizer.pkl")
+    model = joblib.load("model.pkl")
+    vectorizer = joblib.load("vectorizer.pkl")
     print("✅ ML Model loaded!")
 except:
     model = None

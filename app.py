@@ -22,11 +22,11 @@ except:
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = [
+GROQ_MODELS =[ 
     "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
 ]
-
+   
 TRUSTED_DOMAINS = [
     "bbc.com", "bbc.co.uk", "reuters.com", "apnews.com",
     "ndtv.com", "thehindu.com", "hindustantimes.com", "indiatoday.in",
